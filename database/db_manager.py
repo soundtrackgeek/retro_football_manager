@@ -1,8 +1,10 @@
 import sqlite3
 from sqlite3 import Error
+from utils.logger import setup_logger
 
 class DatabaseManager:
     def __init__(self, db_path='savegames/game.db'):
+        self.logger = setup_logger('db_manager_logger', 'logs/db_manager.log')
         self.db_path = db_path
         self.conn = None
         self.connect()
@@ -12,9 +14,9 @@ class DatabaseManager:
         try:
             self.conn = sqlite3.connect(self.db_path)
             self.conn.row_factory = sqlite3.Row  # To access columns by name
-            print(f"Connected to database at {self.db_path}")
+            self.logger.info(f"Connected to database at {self.db_path}")
         except Error as e:
-            print(f"Error connecting to database: {e}")
+            self.logger.error(f"Error connecting to database: {e}")
 
     def setup_tables(self):
         try:
@@ -82,14 +84,14 @@ class DatabaseManager:
                 );
             """)
             self.conn.commit()
-            print("Database tables have been set up successfully.")
+            self.logger.info("Database tables have been set up successfully.")
         except Error as e:
-            print(f"Error setting up tables: {e}")
+            self.logger.error(f"Error setting up tables: {e}")
 
     def close(self):
         if self.conn:
             self.conn.close()
-            print("Database connection closed.")
+            self.logger.info("Database connection closed.")
 
     # Player methods
     def add_player(self, name, position, skills, morale, contract_end):
@@ -100,18 +102,20 @@ class DatabaseManager:
                 VALUES (?, ?, ?, ?, ?)
             """, (name, position, skills, morale, contract_end))
             self.conn.commit()
-            print(f"Player '{name}' added successfully.")
+            self.logger.info(f"Player '{name}' added successfully.")
             return cursor.lastrowid
         except Error as e:
-            print(f"Error adding player: {e}")
+            self.logger.error(f"Error adding player: {e}")
 
     def get_all_players(self):
         try:
             cursor = self.conn.cursor()
             cursor.execute("SELECT * FROM players")
-            return cursor.fetchall()
+            players = cursor.fetchall()
+            self.logger.info(f"Retrieved {len(players)} players.")
+            return players
         except Error as e:
-            print(f"Error retrieving players: {e}")
+            self.logger.error(f"Error retrieving players: {e}")
             return []
 
     def get_player_by_id(self, player_id):
@@ -128,11 +132,13 @@ class DatabaseManager:
                     'morale': player['morale'],
                     'contract_end': player['contract_end']
                 }
+                self.logger.info(f"Retrieved player: {player_dict}")
                 return player_dict
             else:
+                self.logger.warning(f"No player found with ID {player_id}.")
                 return None
         except Error as e:
-            print(f"Error retrieving player: {e}")
+            self.logger.error(f"Error retrieving player: {e}")
             return None
 
     def update_player_skills(self, player_id, new_skills):
@@ -144,9 +150,9 @@ class DatabaseManager:
                 WHERE id = ?
             """, (new_skills, player_id))
             self.conn.commit()
-            print(f"Player ID {player_id} skills updated to {new_skills}.")
+            self.logger.info(f"Player ID {player_id} skills updated to {new_skills}.")
         except Error as e:
-            print(f"Error updating player skills: {e}")
+            self.logger.error(f"Error updating player skills: {e}")
 
     def update_player_morale(self, player_id, new_morale):
         try:
@@ -157,9 +163,9 @@ class DatabaseManager:
                 WHERE id = ?
             """, (new_morale, player_id))
             self.conn.commit()
-            print(f"Player ID {player_id} morale updated to {new_morale}.")
+            self.logger.info(f"Player ID {player_id} morale updated to {new_morale}.")
         except Error as e:
-            print(f"Error updating player morale: {e}")
+            self.logger.error(f"Error updating player morale: {e}")
 
     def update_player_contract(self, player_id, new_contract_end):
         try:
@@ -170,9 +176,9 @@ class DatabaseManager:
                 WHERE id = ?
             """, (new_contract_end, player_id))
             self.conn.commit()
-            print(f"Player ID {player_id} contract end updated to {new_contract_end}.")
+            self.logger.info(f"Player ID {player_id} contract end updated to {new_contract_end}.")
         except Error as e:
-            print(f"Error updating player contract end: {e}")
+            self.logger.error(f"Error updating player contract end: {e}")
 
     def delete_player(self, player_id):
         try:
@@ -182,9 +188,9 @@ class DatabaseManager:
                 WHERE id = ?
             """, (player_id,))
             self.conn.commit()
-            print(f"Player ID {player_id} deleted successfully.")
+            self.logger.info(f"Player ID {player_id} deleted successfully.")
         except Error as e:
-            print(f"Error deleting player: {e}")
+            self.logger.error(f"Error deleting player: {e}")
 
     # Team methods
     def add_team(self, name, formation, tactics):
@@ -195,10 +201,10 @@ class DatabaseManager:
                 VALUES (?, ?, ?)
             """, (name, formation, tactics))
             self.conn.commit()
-            print(f"Team '{name}' added successfully.")
+            self.logger.info(f"Team '{name}' added successfully.")
             return cursor.lastrowid
         except Error as e:
-            print(f"Error adding team: {e}")
+            self.logger.error(f"Error adding team: {e}")
 
     def get_team_by_id(self, team_id):
         try:
@@ -212,11 +218,13 @@ class DatabaseManager:
                     'formation': team['formation'],
                     'tactics': team['tactics']
                 }
+                self.logger.info(f"Retrieved team: {team_dict}")
                 return team_dict
             else:
+                self.logger.warning(f"No team found with ID {team_id}.")
                 return None
         except Error as e:
-            print(f"Error retrieving team: {e}")
+            self.logger.error(f"Error retrieving team: {e}")
             return None
 
     def add_player_to_team(self, team_id, player_id):
@@ -227,9 +235,9 @@ class DatabaseManager:
                 VALUES (?, ?)
             """, (team_id, player_id))
             self.conn.commit()
-            print(f"Player ID {player_id} added to Team ID {team_id}.")
+            self.logger.info(f"Player ID {player_id} added to Team ID {team_id}.")
         except Error as e:
-            print(f"Error adding player to team: {e}")
+            self.logger.error(f"Error adding player to team: {e}")
 
     def remove_player_from_team(self, team_id, player_id):
         try:
@@ -239,9 +247,9 @@ class DatabaseManager:
                 WHERE team_id = ? AND player_id = ?
             """, (team_id, player_id))
             self.conn.commit()
-            print(f"Player ID {player_id} removed from Team ID {team_id}.")
+            self.logger.info(f"Player ID {player_id} removed from Team ID {team_id}.")
         except Error as e:
-            print(f"Error removing player from team: {e}")
+            self.logger.error(f"Error removing player from team: {e}")
 
     def update_team_formation(self, team_id, new_formation):
         try:
@@ -252,9 +260,9 @@ class DatabaseManager:
                 WHERE id = ?
             """, (new_formation, team_id))
             self.conn.commit()
-            print(f"Team ID {team_id} formation updated to '{new_formation}'.")
+            self.logger.info(f"Team ID {team_id} formation updated to '{new_formation}'.")
         except Error as e:
-            print(f"Error updating team formation: {e}")
+            self.logger.error(f"Error updating team formation: {e}")
 
     def update_team_tactics(self, team_id, new_tactics):
         try:
@@ -265,9 +273,9 @@ class DatabaseManager:
                 WHERE id = ?
             """, (new_tactics, team_id))
             self.conn.commit()
-            print(f"Team ID {team_id} tactics updated to '{new_tactics}'.")
+            self.logger.info(f"Team ID {team_id} tactics updated to '{new_tactics}'.")
         except Error as e:
-            print(f"Error updating team tactics: {e}")
+            self.logger.error(f"Error updating team tactics: {e}")
 
     # Match methods
     def add_match(self, home_team_id, away_team_id, date):
@@ -278,10 +286,11 @@ class DatabaseManager:
                 VALUES (?, ?, ?)
             """, (home_team_id, away_team_id, date))
             self.conn.commit()
-            print(f"Match between Team ID {home_team_id} and Team ID {away_team_id} on {date} added successfully.")
-            return cursor.lastrowid
+            match_id = cursor.lastrowid
+            self.logger.info(f"Match between Team ID {home_team_id} and Team ID {away_team_id} on {date} added successfully with ID {match_id}.")
+            return match_id
         except Error as e:
-            print(f"Error adding match: {e}")
+            self.logger.error(f"Error adding match: {e}")
 
     def get_match_by_id(self, match_id):
         try:
@@ -297,11 +306,13 @@ class DatabaseManager:
                     'home_score': match['home_score'],
                     'away_score': match['away_score']
                 }
+                self.logger.info(f"Retrieved match: {match_dict}")
                 return match_dict
             else:
+                self.logger.warning(f"No match found with ID {match_id}.")
                 return None
         except Error as e:
-            print(f"Error retrieving match: {e}")
+            self.logger.error(f"Error retrieving match: {e}")
             return None
 
     def update_match_score(self, match_id, home_score, away_score):
@@ -313,17 +324,19 @@ class DatabaseManager:
                 WHERE id = ?
             """, (home_score, away_score, match_id))
             self.conn.commit()
-            print(f"Match ID {match_id} score updated to {home_score}-{away_score}.")
+            self.logger.info(f"Match ID {match_id} score updated to {home_score}-{away_score}.")
         except Error as e:
-            print(f"Error updating match score: {e}")
+            self.logger.error(f"Error updating match score: {e}")
 
     def get_all_matches(self):
         try:
             cursor = self.conn.cursor()
             cursor.execute("SELECT * FROM matches")
-            return cursor.fetchall()
+            matches = cursor.fetchall()
+            self.logger.info(f"Retrieved {len(matches)} matches.")
+            return matches
         except Error as e:
-            print(f"Error retrieving matches: {e}")
+            self.logger.error(f"Error retrieving matches: {e}")
             return []
 
     def delete_match(self, match_id):
@@ -334,9 +347,9 @@ class DatabaseManager:
                 WHERE id = ?
             """, (match_id,))
             self.conn.commit()
-            print(f"Match ID {match_id} deleted successfully.")
+            self.logger.info(f"Match ID {match_id} deleted successfully.")
         except Error as e:
-            print(f"Error deleting match: {e}")
+            self.logger.error(f"Error deleting match: {e}")
 
     # League methods
     def add_league(self, name, season):
@@ -347,10 +360,11 @@ class DatabaseManager:
                 VALUES (?, ?)
             """, (name, season))
             self.conn.commit()
-            print(f"League '{name}' for season '{season}' added successfully.")
-            return cursor.lastrowid
+            league_id = cursor.lastrowid
+            self.logger.info(f"League '{name}' for season '{season}' added successfully with ID {league_id}.")
+            return league_id
         except Error as e:
-            print(f"Error adding league: {e}")
+            self.logger.error(f"Error adding league: {e}")
 
     def get_league_by_id(self, league_id):
         try:
@@ -363,20 +377,24 @@ class DatabaseManager:
                     'name': league['name'],
                     'season': league['season']
                 }
+                self.logger.info(f"Retrieved league: {league_dict}")
                 return league_dict
             else:
+                self.logger.warning(f"No league found with ID {league_id}.")
                 return None
         except Error as e:
-            print(f"Error retrieving league: {e}")
+            self.logger.error(f"Error retrieving league: {e}")
             return None
 
     def get_all_leagues(self):
         try:
             cursor = self.conn.cursor()
             cursor.execute("SELECT * FROM leagues")
-            return cursor.fetchall()
+            leagues = cursor.fetchall()
+            self.logger.info(f"Retrieved {len(leagues)} leagues.")
+            return leagues
         except Error as e:
-            print(f"Error retrieving leagues: {e}")
+            self.logger.error(f"Error retrieving leagues: {e}")
             return []
 
     def update_league_name(self, league_id, new_name):
@@ -388,9 +406,9 @@ class DatabaseManager:
                 WHERE id = ?
             """, (new_name, league_id))
             self.conn.commit()
-            print(f"League ID {league_id} name updated to '{new_name}'.")
+            self.logger.info(f"League ID {league_id} name updated to '{new_name}'.")
         except Error as e:
-            print(f"Error updating league name: {e}")
+            self.logger.error(f"Error updating league name: {e}")
 
     def update_league_season(self, league_id, new_season):
         try:
@@ -401,9 +419,9 @@ class DatabaseManager:
                 WHERE id = ?
             """, (new_season, league_id))
             self.conn.commit()
-            print(f"League ID {league_id} season updated to '{new_season}'.")
+            self.logger.info(f"League ID {league_id} season updated to '{new_season}'.")
         except Error as e:
-            print(f"Error updating league season: {e}")
+            self.logger.error(f"Error updating league season: {e}")
 
     def delete_league(self, league_id):
         try:
@@ -413,9 +431,9 @@ class DatabaseManager:
                 WHERE id = ?
             """, (league_id,))
             self.conn.commit()
-            print(f"League ID {league_id} deleted successfully.")
+            self.logger.info(f"League ID {league_id} deleted successfully.")
         except Error as e:
-            print(f"Error deleting league: {e}")
+            self.logger.error(f"Error deleting league: {e}")
 
     # Finance methods
     def add_finance(self, team_id, budget, revenue=0, expenses=0):
@@ -426,10 +444,11 @@ class DatabaseManager:
                 VALUES (?, ?, ?, ?)
             """, (team_id, budget, revenue, expenses))
             self.conn.commit()
-            print(f"Finance record for Team ID {team_id} added successfully.")
-            return cursor.lastrowid
+            finance_id = cursor.lastrowid
+            self.logger.info(f"Finance record for Team ID {team_id} added successfully with ID {finance_id}.")
+            return finance_id
         except Error as e:
-            print(f"Error adding finance record: {e}")
+            self.logger.error(f"Error adding finance record: {e}")
 
     def get_finance_by_team_id(self, team_id):
         try:
@@ -444,11 +463,13 @@ class DatabaseManager:
                     'revenue': finance['revenue'],
                     'expenses': finance['expenses']
                 }
+                self.logger.info(f"Retrieved finance record: {finance_dict}")
                 return finance_dict
             else:
+                self.logger.warning(f"No finance record found for Team ID {team_id}.")
                 return None
         except Error as e:
-            print(f"Error retrieving finance record: {e}")
+            self.logger.error(f"Error retrieving finance record: {e}")
             return None
 
     def update_finance_budget(self, team_id, new_budget):
@@ -460,9 +481,9 @@ class DatabaseManager:
                 WHERE team_id = ?
             """, (new_budget, team_id))
             self.conn.commit()
-            print(f"Finance budget for Team ID {team_id} updated to {new_budget}.")
+            self.logger.info(f"Finance budget for Team ID {team_id} updated to {new_budget}.")
         except Error as e:
-            print(f"Error updating finance budget: {e}")
+            self.logger.error(f"Error updating finance budget: {e}")
 
     def update_finance_revenue(self, team_id, additional_revenue):
         try:
@@ -473,9 +494,9 @@ class DatabaseManager:
                 WHERE team_id = ?
             """, (additional_revenue, additional_revenue, team_id))
             self.conn.commit()
-            print(f"Finance revenue for Team ID {team_id} increased by {additional_revenue}.")
+            self.logger.info(f"Finance revenue for Team ID {team_id} increased by {additional_revenue}.")
         except Error as e:
-            print(f"Error updating finance revenue: {e}")
+            self.logger.error(f"Error updating finance revenue: {e}")
 
     def update_finance_expenses(self, team_id, additional_expenses):
         try:
@@ -486,9 +507,9 @@ class DatabaseManager:
                 WHERE team_id = ?
             """, (additional_expenses, additional_expenses, team_id))
             self.conn.commit()
-            print(f"Finance expenses for Team ID {team_id} increased by {additional_expenses}.")
+            self.logger.info(f"Finance expenses for Team ID {team_id} increased by {additional_expenses}.")
         except Error as e:
-            print(f"Error updating finance expenses: {e}")
+            self.logger.error(f"Error updating finance expenses: {e}")
 
     def delete_finance(self, team_id):
         try:
@@ -498,8 +519,42 @@ class DatabaseManager:
                 WHERE team_id = ?
             """, (team_id,))
             self.conn.commit()
-            print(f"Finance record for Team ID {team_id} deleted successfully.")
+            self.logger.info(f"Finance record for Team ID {team_id} deleted successfully.")
         except Error as e:
-            print(f"Error deleting finance record: {e}")
+            self.logger.error(f"Error deleting finance record: {e}")
 
-    # Additional methods for leagues, finances can be added similarly.
+    # Additional methods for matches, leagues, finances can be added similarly.
+    
+    # Additional finance-related methods needed by TransferController and FinanceController
+    def get_available_players(self):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT p.* FROM players p
+                LEFT JOIN team_players tp ON p.id = tp.player_id
+                WHERE tp.player_id IS NULL
+            """)
+            players = cursor.fetchall()
+            self.logger.info(f"Retrieved {len(players)} available players.")
+            return players
+        except Error as e:
+            self.logger.error(f"Error retrieving available players: {e}")
+            return []
+
+    def get_team_of_player(self, player_id):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT team_id FROM team_players WHERE player_id = ?
+            """, (player_id,))
+            result = cursor.fetchone()
+            if result:
+                team_id = result['team_id']
+                self.logger.info(f"Player ID {player_id} belongs to Team ID {team_id}.")
+                return team_id
+            else:
+                self.logger.warning(f"Player ID {player_id} does not belong to any team.")
+                return None
+        except Error as e:
+            self.logger.error(f"Error retrieving team of player: {e}")
+            return None
