@@ -14,9 +14,11 @@ class TeamView:
         self.available_formations = ["4-4-2", "3-5-2", "4-3-3", "3-4-3"]
         self.available_tactics = ["Offensive", "Defensive", "Balanced"]
         self.selected_option = None
+        self.current_menu = "team_menu"  # Add this line
 
     def display_team(self, team):
         self.team = team
+        self.current_menu = "team_menu"  # Add this line
         self.screen.fill((0, 0, 0))  # Clear screen with black
         y_offset = 50
 
@@ -148,3 +150,14 @@ class TeamView:
 
     def set_current_menu(self, menu):
         self.current_menu = menu
+
+    def display_empty_state(self):
+        """Display when no teams are available"""
+        # Clear the screen
+        self.screen.fill((0, 0, 0))
+        
+        # Render text
+        font = pygame.font.Font(None, 36)
+        text = font.render("No teams available", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(self.screen.get_width()/2, self.screen.get_height()/2))
+        self.screen.blit(text, text_rect)
