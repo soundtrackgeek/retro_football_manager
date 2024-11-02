@@ -83,6 +83,25 @@ class DatabaseManager:
                     FOREIGN KEY (team_id) REFERENCES teams (id)
                 );
             """)
+            # Settings table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS settings (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    difficulty TEXT DEFAULT 'Easy',
+                    audio TEXT DEFAULT 'On'
+                );
+            """)
+            # Insert default settings if not exist
+            cursor.execute("SELECT COUNT(*) FROM settings WHERE id = 1")
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("""
+                    INSERT INTO settings (id, difficulty, audio)
+                    VALUES (1, 'Easy', 'On')
+                """)
+                self.conn.commit()
+                self.logger.info("Default settings have been inserted.")
+            else:
+                self.logger.info("Settings already exist.")
             self.conn.commit()
             self.logger.info("Database tables have been set up successfully.")
         except Error as e:
@@ -523,9 +542,45 @@ class DatabaseManager:
         except Error as e:
             self.logger.error(f"Error deleting finance record: {e}")
 
-    # Additional methods for matches, leagues, finances can be added similarly.
-    
-    # Additional finance-related methods needed by TransferController and FinanceController
+    # Settings methods
+    def get_settings(self):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM settings WHERE id = 1")
+            settings = cursor.fetchone()
+            if settings:
+                settings_dict = {
+                    'difficulty': settings['difficulty'],
+                    'audio': settings['audio']
+                }
+                self.logger.info(f"Retrieved settings: {settings_dict}")
+                return settings_dict
+            else:
+                self.logger.warning("No settings found.")
+                return None
+        except Error as e:
+            self.logger.error(f"Error retrieving settings: {e}")
+            return None
+
+    def set_setting(self, key, value):
+        if key not in ['difficulty', 'audio']:
+            self.logger.error(f"Invalid setting key: {key}")
+            return False
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute(f"""
+                UPDATE settings
+                SET {key} = ?
+                WHERE id = 1
+            """, (value,))
+            self.conn.commit()
+            self.logger.info(f"Setting '{key}' updated to '{value}'.")
+            return True
+        except Error as e:
+            self.logger.error(f"Error setting '{key}': {e}")
+            return False
+
+    # Additional methods for teams, finances, etc.
     def get_available_players(self):
         try:
             cursor = self.conn.cursor()
@@ -558,3 +613,16 @@ class DatabaseManager:
         except Error as e:
             self.logger.error(f"Error retrieving team of player: {e}")
             return None
+
+    def get_all_teams(self):
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM teams")
+            teams = cursor.fetchall()
+            self.logger.info(f"Retrieved {len(teams)} teams.")
+            return teams
+        except Error as e:
+            self.logger.error(f"Error retrieving teams: {e}")
+            return []
+
+    # Add other necessary methods as needed
