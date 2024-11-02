@@ -284,6 +284,6 @@ class GameController:
         except Exception as e:
             self.logger.error(f"Error rendering view: {e}")
 
-if __name__ == '__main__':
-    game = GameController()
-    game.start_game()
+    if __name__ == '__main__':
+        game = GameController()
+        game.start_game()
