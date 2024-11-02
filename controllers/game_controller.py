@@ -239,7 +239,7 @@ class GameController:
                     morale=p['morale'],
                     contract_end=p['contract_end']
                 ) for p in players]
-                for player in player_objects:
+                for player, p in zip(player_objects, players):
                     player.id = p['id']
                 self.player_view.display_players(player_objects)
             elif isinstance(self.current_view, MatchView):
@@ -252,8 +252,8 @@ class GameController:
                     home_score=match['home_score'],
                     away_score=match['away_score']
                 ) for match in matches]
-                for match in match_objects:
-                    match.id = match['id']
+                for match, m in zip(match_objects, matches):
+                    match.id = m['id']
                 self.match_view.display_matches(match_objects)
             elif isinstance(self.current_view, LeagueView):
                 # Example: Display all leagues
@@ -262,13 +262,14 @@ class GameController:
                     name=league['name'],
                     season=league['season']
                 ) for league in leagues]
-                for league in league_objects:
-                    league.id = league['id']
+                for league, l in zip(league_objects, leagues):
+                    league.id = l['id']
                 self.league_view.display_leagues(league_objects)
             elif isinstance(self.current_view, FinanceView):
                 # Example: Display finance for first team
-                finance = self.finance_controller.db_manager.get_finance_by_team_id(1)  # Example team ID
-                if finance:
+                finances = self.finance_controller.db_manager.get_all_finances()
+                if finances:
+                    finance = finances[0]
                     self.finance_view.display_finances(finance)
             elif isinstance(self.current_view, SettingsView):
                 # Display current settings
