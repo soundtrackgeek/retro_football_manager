@@ -1,6 +1,7 @@
 from database.db_manager import DatabaseManager
 from views.settings_view import SettingsView
 from utils.logger import setup_logger
+import pygame
 
 class SettingsController:
     def __init__(self, db_manager: DatabaseManager, settings_view: SettingsView):
