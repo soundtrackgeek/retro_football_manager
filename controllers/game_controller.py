@@ -19,7 +19,7 @@ from utils.logger import setup_logger
 
 class GameController:
     def __init__(self):
-        # Initialize game state and resources
+        # Initialize Pygame
         pygame.init()
         self.screen = pygame.display.set_mode((800, 600))
         pygame.display.set_caption("Retro Football Manager")
@@ -69,7 +69,8 @@ class GameController:
                     selected_option = self.current_view.handle_input(event)
 
             if selected_option:
-                self.handle_menu_selection(selected_option)
+                self.logger.info(f"Menu selection: {selected_option}")
+                self.handle_selection(selected_option)
 
             self.update()
             self.render()
@@ -79,8 +80,7 @@ class GameController:
         pygame.quit()
         self.logger.info("Game closed.")
 
-    def handle_menu_selection(self, selection):
-        self.logger.info(f"Menu selection: {selection}")
+    def handle_selection(self, selection):
         if self.current_view == self.menu_view:
             if selection == "Start Game":
                 self.logger.info("Starting a new game...")
@@ -102,13 +102,10 @@ class GameController:
                 self.logger.info("Returning to main menu from settings.")
                 self.current_view = self.menu_view
             elif selection == "Controls":
-                self.logger.info("Opening controls settings...")
-                self.display_controls()
-            elif selection.startswith("Difficulty") or selection.startswith("Audio"):
-                # Settings adjustments are handled within the SettingsView
-                pass
+                self.logger.info("Opening controls settings.")
+                self.settings_controller.display_controls()
             elif selection == "Apply Settings":
-                self.logger.info("Applying settings...")
+                self.logger.info("Applying settings.")
                 self.settings_controller.apply_settings()
         elif self.current_view == self.team_view:
             if selection == "Back to Main Menu":
@@ -117,9 +114,11 @@ class GameController:
             elif selection == "Manage Formation":
                 self.logger.info("Managing team formation.")
                 # Implement formation management
+                self.logger.info("Team formation management not yet implemented.")
             elif selection == "Manage Tactics":
                 self.logger.info("Managing team tactics.")
                 # Implement tactics management
+                self.logger.info("Team tactics management not yet implemented.")
             elif selection == "View Players":
                 self.logger.info("Viewing team players.")
                 self.current_view = self.player_view
@@ -130,15 +129,19 @@ class GameController:
             elif selection == "View Player Details":
                 self.logger.info("Viewing player details.")
                 # Implement player details viewing
+                self.logger.info("Player details viewing not yet implemented.")
             elif selection == "Update Player Skills":
                 self.logger.info("Updating player skills.")
                 # Implement updating player skills
+                self.logger.info("Player skills updating not yet implemented.")
             elif selection == "Update Player Morale":
                 self.logger.info("Updating player morale.")
                 # Implement updating player morale
+                self.logger.info("Player morale updating not yet implemented.")
             elif selection == "Update Player Contract":
                 self.logger.info("Updating player contract.")
                 # Implement updating player contract
+                self.logger.info("Player contract updating not yet implemented.")
         elif self.current_view == self.match_view:
             if selection == "Back to Main Menu":
                 self.logger.info("Returning to main menu from match view.")
@@ -146,12 +149,15 @@ class GameController:
             elif selection == "View Match Details":
                 self.logger.info("Viewing match details.")
                 # Implement match details viewing
+                self.logger.info("Match details viewing not yet implemented.")
             elif selection == "Simulate Match":
                 self.logger.info("Simulating a match.")
                 # Implement match simulation
+                self.logger.info("Match simulation not yet implemented.")
             elif selection == "Delete Match":
                 self.logger.info("Deleting a match.")
                 # Implement match deletion
+                self.logger.info("Match deletion not yet implemented.")
         elif self.current_view == self.league_view:
             if selection == "Back to Main Menu":
                 self.logger.info("Returning to main menu from league view.")
@@ -159,12 +165,15 @@ class GameController:
             elif selection == "View Standings":
                 self.logger.info("Viewing league standings.")
                 # Implement standings viewing
+                self.logger.info("League standings viewing not yet implemented.")
             elif selection == "View Fixtures":
                 self.logger.info("Viewing league fixtures.")
                 # Implement fixtures viewing
+                self.logger.info("League fixtures viewing not yet implemented.")
             elif selection == "View Statistics":
                 self.logger.info("Viewing league statistics.")
                 # Implement statistics viewing
+                self.logger.info("League statistics viewing not yet implemented.")
         elif self.current_view == self.finance_view:
             if selection == "Back to Main Menu":
                 self.logger.info("Returning to main menu from finance view.")
@@ -172,15 +181,19 @@ class GameController:
             elif selection == "View Budget":
                 self.logger.info("Viewing team budget.")
                 # Implement budget viewing
+                self.logger.info("Budget viewing not yet implemented.")
             elif selection == "View Revenue":
                 self.logger.info("Viewing team revenue.")
                 # Implement revenue viewing
+                self.logger.info("Revenue viewing not yet implemented.")
             elif selection == "View Expenses":
                 self.logger.info("Viewing team expenses.")
                 # Implement expenses viewing
+                self.logger.info("Expenses viewing not yet implemented.")
             elif selection == "Update Budget":
                 self.logger.info("Updating team budget.")
                 # Implement budget updating
+                self.logger.info("Budget updating not yet implemented.")
         elif self.current_view == self.transfer_view:
             if selection == "Back to Main Menu":
                 self.logger.info("Returning to main menu from transfer view.")
@@ -188,18 +201,13 @@ class GameController:
             elif selection == "Buy Player":
                 self.logger.info("Initiating player purchase.")
                 # Implement player buying functionality
+                self.logger.info("Player purchase not yet implemented.")
             elif selection == "Sell Player":
                 self.logger.info("Initiating player sale.")
                 # Implement player selling functionality
-        elif self.current_view == self.settings_view:
-            if selection == "Back to Main Menu":
-                self.logger.info("Returning to main menu from settings.")
-                self.current_view = self.menu_view
-            elif selection == "Apply Settings":
-                self.logger.info("Applying settings.")
-                self.settings_controller.apply_settings()
+                self.logger.info("Player sale not yet implemented.")
         else:
-            self.logger.warning(f"Unhandled view: {self.current_view}")
+            self.logger.warning(f"Unhandled selection: {selection}")
 
     def update(self):
         # Update game state if needed
@@ -212,34 +220,64 @@ class GameController:
                 self.current_view.display_menu()
             elif isinstance(self.current_view, TeamView):
                 # Example: Display first team; in practice, manage selected team
-                team = self.team_controller.get_team(1)  # Example team ID
-                if team:
-                    self.current_view.display_team(team)
+                teams = self.team_controller.db_manager.get_all_teams()
+                if teams:
+                    team = Team(
+                        name=teams[0]['name'],
+                        formation=teams[0]['formation'],
+                        tactics=teams[0]['tactics']
+                    )
+                    team.id = teams[0]['id']
+                    self.team_view.display_team(team)
             elif isinstance(self.current_view, PlayerView):
-                # Example: Display all players; in practice, manage selected team/player
+                # Example: Display all players
                 players = self.player_controller.db_manager.get_all_players()
-                self.current_view.display_players(players)
+                player_objects = [Player(
+                    name=p['name'],
+                    position=p['position'],
+                    skills=p['skills'],
+                    morale=p['morale'],
+                    contract_end=p['contract_end']
+                ) for p in players]
+                for player in player_objects:
+                    player.id = p['id']
+                self.player_view.display_players(player_objects)
             elif isinstance(self.current_view, MatchView):
                 # Example: Display all matches
                 matches = self.match_controller.db_manager.get_all_matches()
-                self.current_view.display_matches(matches)
+                match_objects = [Match(
+                    home_team=match['home_team_id'],
+                    away_team=match['away_team_id'],
+                    date=match['date'],
+                    home_score=match['home_score'],
+                    away_score=match['away_score']
+                ) for match in matches]
+                for match in match_objects:
+                    match.id = match['id']
+                self.match_view.display_matches(match_objects)
             elif isinstance(self.current_view, LeagueView):
                 # Example: Display all leagues
                 leagues = self.league_controller.db_manager.get_all_leagues()
-                self.current_view.display_leagues(leagues)
+                league_objects = [League(
+                    name=league['name'],
+                    season=league['season']
+                ) for league in leagues]
+                for league in league_objects:
+                    league.id = league['id']
+                self.league_view.display_leagues(league_objects)
             elif isinstance(self.current_view, FinanceView):
-                # Example: Display finance for first team; in practice, manage selected team
+                # Example: Display finance for first team
                 finance = self.finance_controller.db_manager.get_finance_by_team_id(1)  # Example team ID
                 if finance:
-                    self.current_view.display_finances(finance)
+                    self.finance_view.display_finances(finance)
             elif isinstance(self.current_view, SettingsView):
                 # Display current settings
-                self.current_view.display_settings()
+                self.settings_view.display_settings()
             elif isinstance(self.current_view, TransferView):
                 # Example: List available players and teams
                 available_players = self.transfer_controller.list_available_players()
                 teams = self.team_controller.db_manager.get_all_teams()
-                self.current_view.display_transfers(available_players, teams)
+                self.transfer_view.display_transfers(available_players, teams)
             else:
                 self.logger.warning(f"No render method defined for view: {self.current_view}")
         except Exception as e:
