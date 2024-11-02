@@ -1,8 +1,14 @@
 import pygame
+from database.db_manager import DatabaseManager
 
 class TeamView:
-    def __init__(self, screen):
+    def __init__(self, screen, game_state):
         self.screen = screen
+        self.game_state = game_state
+        self.db_manager = DatabaseManager()
+        self.font = pygame.font.Font(None, 36)
+        # Load the selected team from the game state
+        self.team = self.db_manager.get_team_by_id(self.game_state.selected_team_id)
         try:
             self.font = pygame.font.Font('assets/fonts/c64_font.ttf', 24)
         except FileNotFoundError:

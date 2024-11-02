@@ -21,6 +21,30 @@ class DatabaseManager:
     def setup_tables(self):
         try:
             cursor = self.conn.cursor()
+            
+            # Check if necessary columns exist in teams table
+            cursor.execute("PRAGMA table_info(teams)")
+            columns = cursor.fetchall()
+            columns_dict = {column[1]: column for column in columns}
+            
+            # Add missing 'country' column if it doesn't exist
+            if 'country' not in columns_dict:
+                cursor.execute("ALTER TABLE teams ADD COLUMN country TEXT DEFAULT 'England'")
+            # Add missing 'division' column if it doesn't exist
+            if 'division' not in columns_dict:
+                cursor.execute("ALTER TABLE teams ADD COLUMN division INTEGER DEFAULT 1")
+            
+            # Create 'teams' table if it does not exist
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS teams (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    formation TEXT,
+                    tactics TEXT,
+                    country TEXT DEFAULT 'England',
+                    division INTEGER DEFAULT 1
+                );
+            """)
             # Players table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS players (
@@ -30,15 +54,6 @@ class DatabaseManager:
                     skills INTEGER,
                     morale INTEGER,
                     contract_end INTEGER
-                );
-            """)
-            # Teams table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS teams (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    formation TEXT,
-                    tactics TEXT
                 );
             """)
             # Team_Players join table
@@ -98,10 +113,7 @@ class DatabaseManager:
                     INSERT INTO settings (id, difficulty, audio)
                     VALUES (1, 'Easy', 'On')
                 """)
-                self.conn.commit()
-                self.logger.info("Default settings have been inserted.")
-            else:
-                self.logger.info("Settings already exist.")
+            # Commit the changes
             self.conn.commit()
             self.logger.info("Database tables have been set up successfully.")
         except Error as e:
@@ -212,13 +224,13 @@ class DatabaseManager:
             self.logger.error(f"Error deleting player: {e}")
 
     # Team methods
-    def add_team(self, name, formation, tactics):
+    def add_team(self, name, formation, tactics, division=1):
         try:
             cursor = self.conn.cursor()
             cursor.execute("""
-                INSERT INTO teams (name, formation, tactics)
-                VALUES (?, ?, ?)
-            """, (name, formation, tactics))
+                INSERT INTO teams (name, formation, tactics, division)
+                VALUES (?, ?, ?, ?)
+            """, (name, formation, tactics, division))
             self.conn.commit()
             self.logger.info(f"Team '{name}' added successfully.")
             return cursor.lastrowid
@@ -235,7 +247,9 @@ class DatabaseManager:
                     'id': team['id'],
                     'name': team['name'],
                     'formation': team['formation'],
-                    'tactics': team['tactics']
+                    'tactics': team['tactics'],
+                    'country': team['country'],
+                    'division': team['division']
                 }
                 self.logger.info(f"Retrieved team: {team_dict}")
                 return team_dict
@@ -295,6 +309,139 @@ class DatabaseManager:
             self.logger.info(f"Team ID {team_id} tactics updated to '{new_tactics}'.")
         except Error as e:
             self.logger.error(f"Error updating team tactics: {e}")
+
+    def get_english_teams(self):
+        """Get all English teams from the database"""
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                SELECT id, name, formation, tactics, division
+                FROM teams 
+                WHERE country = 'England'
+            ''')
+            teams = cursor.fetchall()
+            # Convert to list of dictionaries for easier handling
+            teams_list = [
+                {
+                    'id': team[0],
+                    'name': team[1],
+                    'formation': team[2],
+                    'tactics': team[3],
+                    'division': team[4]
+                }
+                for team in teams
+            ]
+            self.logger.info(f"Retrieved {len(teams_list)} English teams")
+            return teams_list
+        except Exception as e:
+            self.logger.error(f"Error retrieving English teams: {str(e)}")
+            return []
+
+    def initialize_english_teams(self):
+        """Initialize all English teams for a new game"""
+        try:
+            # Delete existing teams first
+            cursor = self.conn.cursor()
+            cursor.execute("DELETE FROM teams")
+            
+            # Premier League teams
+            premier_league = [
+                "Arsenal", "Aston Villa", "Chelsea", "Everton", "Liverpool", 
+                "Manchester City", "Manchester United", "Newcastle United", 
+                "Nottingham Forest", "Tottenham Hotspur", "West Ham United",
+                "Wolves", "Brighton", "Crystal Palace", "Fulham", "Burnley",
+                "Sheffield United", "Bournemouth", "Brentford", "Luton Town"
+            ]
+
+            # Insert Premier League teams with division 1
+            for team in premier_league:
+                cursor.execute("""
+                    INSERT INTO teams (name, formation, tactics, country, division)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (team, "4-4-2", "Balanced", "England", 1))
+
+            # Championship teams
+            championship = [
+                "Leeds United", "Leicester City", "Southampton", "West Bromwich",
+                "Norwich City", "Watford", "Middlesbrough", "Sunderland",
+                "Stoke City", "Hull City", "Swansea City", "Cardiff City",
+                "Blackburn Rovers", "QPR", "Sheffield Wednesday", "Birmingham City",
+                "Millwall", "Preston", "Rotherham", "Coventry City", "Ipswich Town",
+                "Plymouth Argyle", "Huddersfield Town", "Bristol City"
+            ]
+
+            # Insert Championship teams with division 2
+            for team in championship:
+                cursor.execute("""
+                    INSERT INTO teams (name, formation, tactics, country, division)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (team, "4-4-2", "Balanced", "England", 2))
+
+            # League One teams
+            league_one = [
+                "Derby County", "Portsmouth", "Barnsley", "Bolton Wanderers",
+                "Oxford United", "Charlton Athletic", "Peterborough United",
+                "Lincoln City", "Bristol Rovers", "Wycombe Wanderers",
+                "Shrewsbury Town", "Cambridge United", "Port Vale", "Exeter City",
+                "Cheltenham Town", "Carlisle United", "Stevenage", "Fleetwood Town",
+                "Burton Albion", "Reading", "Northampton Town", "Leyton Orient",
+                "Wigan Athletic", "Forest Green Rovers"
+            ]
+
+            # Insert League One teams with division 3
+            for team in league_one:
+                cursor.execute("""
+                    INSERT INTO teams (name, formation, tactics, country, division)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (team, "4-4-2", "Balanced", "England", 3))
+
+            # League Two teams
+            league_two = [
+                "Bradford City", "Mansfield Town", "Stockport County", "Notts County",
+                "Wrexham", "Swindon Town", "Crewe Alexandra", "Gillingham",
+                "AFC Wimbledon", "Doncaster Rovers", "Morecambe", "Grimsby Town",
+                "Harrogate Town", "Salford City", "Tranmere Rovers", "Crawley Town",
+                "Newport County", "Barrow", "Accrington Stanley", "Sutton United",
+                "Colchester United", "MK Dons", "Walsall", "Rochdale"
+            ]
+
+            # Insert League Two teams with division 4
+            for team in league_two:
+                cursor.execute("""
+                    INSERT INTO teams (name, formation, tactics, country, division)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (team, "4-4-2", "Balanced", "England", 4))
+
+            self.conn.commit()
+            self.logger.info("English teams initialized successfully.")
+        except Error as e:
+            self.logger.error(f"Error initializing English teams: {e}")
+
+    def get_teams_by_division(self, division):
+        """Get all teams from a specific division"""
+        try:
+            cursor = self.conn.cursor()
+            cursor.execute('''
+                SELECT id, name, formation, tactics 
+                FROM teams 
+                WHERE division = ? 
+                ORDER BY name
+            ''', (division,))
+            teams = cursor.fetchall()
+            teams_list = [
+                {
+                    'id': team[0],
+                    'name': team[1],
+                    'formation': team[2],
+                    'tactics': team[3]
+                }
+                for team in teams
+            ]
+            self.logger.info(f"Retrieved {len(teams_list)} teams from division {division}")
+            return teams_list
+        except Error as e:
+            self.logger.error(f"Error retrieving teams from division {division}: {e}")
+            return []
 
     # Match methods
     def add_match(self, home_team_id, away_team_id, date):
@@ -624,5 +771,6 @@ class DatabaseManager:
         except Error as e:
             self.logger.error(f"Error retrieving teams: {e}")
             return []
+    # Add other necessary methods as needed
 
     # Add other necessary methods as needed

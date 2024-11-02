@@ -7,6 +7,7 @@ from views.league_view import LeagueView
 from views.finance_view import FinanceView
 from views.settings_view import SettingsView
 from views.transfer_view import TransferView
+from views.team_selection_view import TeamSelectionView
 from controllers.team_controller import TeamController
 from controllers.player_controller import PlayerController
 from controllers.match_controller import MatchController
@@ -54,6 +55,7 @@ class GameController:
         self.finance_view = FinanceView(self.screen)
         self.settings_view = SettingsView(self.screen)
         self.transfer_view = TransferView(self.screen)
+        self.team_selection_view = TeamSelectionView(self.screen)
 
         # Link SettingsController with SettingsView
         self.settings_controller.settings_view = self.settings_view
@@ -90,16 +92,10 @@ class GameController:
             if self.current_view == self.menu_view:
                 if selection == "Start Game":
                     self.logger.info("Starting a new game...")
-                    # Initialize new game state
-                    success = self.initialize_new_game()
-                    if success:
-                        self.current_view = self.team_view
-                        self.logger.info("Successfully transitioned to team view")
-                    else:
-                        self.logger.error("Failed to initialize new game")
+                    self.db_manager.initialize_english_teams()  # Initialize English teams
+                    self.current_view = TeamSelectionView(self.screen, self.game_state)  # Set to team selection view
                 elif selection == "Load Game":
                     self.logger.info("Loading game...")
-                    # Implement load game functionality
                     self.current_view = self.team_view  # Example transition
                 elif selection == "Settings":
                     self.logger.info("Opening settings...")
@@ -107,6 +103,12 @@ class GameController:
                 elif selection == "Exit":
                     self.logger.info("Exiting game...")
                     self.running = False
+            elif self.current_view == self.team_selection_view:
+                selected_index = self.team_selection_view.handle_input(event)
+                if selected_index is not None:
+                    selected_team = teams[selected_index]
+                    self.initialize_new_game(selected_team)
+                    self.current_view = self.team_view
             elif self.current_view == self.settings_view:
                 if selection == "Back to Main Menu":
                     self.logger.info("Returning to main menu from settings.")
@@ -305,19 +307,16 @@ class GameController:
         
         pygame.display.flip()  # Update the display
 
-    def initialize_new_game(self):
+    def initialize_new_game(self, selected_team):
         """Initialize a new game state"""
         try:
-            # Create a default team if none exists
-            teams = self.team_controller.db_manager.get_all_teams()
-            if not teams:
-                # Pass individual parameters instead of a dictionary
-                self.team_controller.create_team(
-                    name='Your Team',
-                    formation='4-4-2',
-                    tactics='Balanced'
-                )
-                self.logger.info("Created default team")
+            # Create the selected team
+            self.team_controller.create_team(
+                name=selected_team['name'],
+                formation='4-4-2',
+                tactics='Balanced'
+            )
+            self.logger.info(f"Created team {selected_team['name']}")
             return True
         except Exception as e:
             self.logger.error(f"Error initializing new game: {str(e)}")
